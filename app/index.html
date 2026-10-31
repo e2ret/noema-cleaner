@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<base href="__BASE__">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOEMA Cleaner</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #eef2f5;
+  --panel: #ffffff;
+  --ink: #1b2833;
+  --muted: #5c6c79;
+  --line: #d6dee5;
+  --used: #3d5a72;
+  --free: #8fcfbf;
+  --sweep: #e3a21a;
+  --danger: #b4412f;
+  --ok: #2c7a5f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #141b21;
+    --panel: #1c252d;
+    --ink: #e4ebf0;
+    --muted: #92a2ae;
+    --line: #2d3943;
+    --used: #5d7f9b;
+    --free: #2f6f61;
+    --sweep: #f0b43a;
+    --danger: #e0775f;
+    --ok: #6cc4a4;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 96px; }
+h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+
+.disk { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+.disk-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.disk-free { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.disk-free small { font-size: 15px; font-weight: 400; color: var(--muted); }
+.bar { display: flex; height: 22px; border-radius: 5px; overflow: hidden; margin: 14px 0 10px; background: var(--free); }
+.bar div { height: 100%; transition: width .35s ease; }
+.bar .u { background: var(--used); }
+.bar .s { background: repeating-linear-gradient(-45deg, var(--sweep) 0 6px, color-mix(in srgb, var(--sweep) 70%, transparent) 6px 12px); }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.group { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+.group-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.group-head .sz { margin-left: auto; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; }
+.row + .row { border-top: 1px solid var(--line); }
+.row .t { flex: 1; min-width: 0; }
+.row .n { display: block; color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .sz { font-variant-numeric: tabular-nums; white-space: nowrap; }
+input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--sweep); margin: 0; flex: none; }
+
+.warn { background: color-mix(in srgb, var(--sweep) 16%, var(--panel)); border: 1px solid var(--sweep); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; }
+.warn[hidden] { display: none; }
+.row { align-items: flex-start; }
+.row input { margin-top: 3px; }
+.row .ti { font-weight: 500; }
+.row .d { display: block; color: var(--muted); font-size: 13.5px; margin: 2px 0 3px; max-width: 64ch; }
+.row .w { display: block; color: var(--sweep); font-size: 12.5px; }
+.lvl { display: inline-block; font-size: 12px; font-weight: 600; padding: 0 7px; border-radius: 9px; margin-left: 8px; vertical-align: 1px; border: 1px solid currentColor; }
+.lvl.safe { color: var(--ok); }
+.lvl.caution { color: var(--sweep); }
+.lvl.keep { color: var(--danger); }
+.ov td .d { display: block; white-space: normal; color: var(--muted); font-size: 12.5px; max-width: 52ch; }
+.ov td:first-child { white-space: normal; }
+.ov td { vertical-align: top; }
+.intro { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 13.5px; color: var(--muted); }
+.intro p { margin: 0; }
+.intro p + p { margin-top: 6px; }
+.row .sz.approx { color: var(--muted); }
+.gr { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 20px; }
+.gr summary { padding: 12px 16px; font-weight: 600; cursor: pointer; }
+.gr .ov-wrap { border-top: 1px solid var(--line); }
+.gr table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.gr th, .gr td { padding: 7px 16px; text-align: right; white-space: nowrap; }
+.gr th:first-child, .gr td:first-child { text-align: left; white-space: normal; }
+.gr th { color: var(--muted); font-weight: 500; }
+.gr tr + tr td { border-top: 1px solid var(--line); }
+.gr tr.total td { font-weight: 600; }
+.gr .up { color: var(--sweep); font-weight: 600; }
+.gr .down { color: var(--ok); }
+.gr .flat { color: var(--muted); }
+.gr p { margin: 0; padding: 10px 16px 14px; color: var(--muted); font-size: 13px; }
+details.ov { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-top: 24px; }
+details.ov summary { padding: 12px 16px; font-weight: 600; cursor: pointer; }
+.ov-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+.ov table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.ov th, .ov td { padding: 7px 16px; text-align: right; white-space: nowrap; }
+.ov th:first-child, .ov td:first-child { text-align: left; }
+.ov th { color: var(--muted); font-weight: 500; }
+.ov tr + tr td { border-top: 1px solid var(--line); }
+.ov p { margin: 0; padding: 10px 16px 14px; color: var(--muted); font-size: 13px; }
+.empty { text-align: center; color: var(--muted); padding: 40px 16px; }
+
+.actions {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: var(--panel); border-top: 1px solid var(--line);
+  padding: 12px 16px;
+}
+.actions-in { max-width: 860px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.status { flex: 1; min-width: 160px; font-size: 14px; color: var(--muted); }
+.status.err { color: var(--danger); }
+button {
+  font: inherit; font-weight: 600; border-radius: 7px; padding: 9px 16px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+}
+button.primary { background: var(--sweep); border-color: var(--sweep); color: #1b1404; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--used); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .bar div { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>NOEMA Cleaner</h1>
+  <p class="sub" id="sub">Кэши сборок, старые версии и временные файлы, которые можно удалить без последствий.</p>
+
+  <section class="disk" aria-label="Диск">
+    <div class="disk-head">
+      <div class="disk-free" id="free">—</div>
+      <div class="legend" id="total"></div>
+    </div>
+    <div class="bar" role="img" id="bar-wrap" aria-label="Заполнение диска">
+      <div class="u" id="bar-u"></div><div class="s" id="bar-s"></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--used)"></i>Занято</span>
+      <span><i style="background:var(--sweep)"></i>Будет освобождено</span>
+      <span><i style="background:var(--free)"></i>Свободно</span>
+    </div>
+  </section>
+
+  <details class="gr" id="gr" open hidden>
+    <summary>Что растёт</summary>
+    <div class="ov-wrap">
+      <table>
+        <thead><tr><th>Что</th><th>Сейчас</th><th id="gr-day">За сутки</th><th id="gr-week">За неделю</th></tr></thead>
+        <tbody id="gr-body"></tbody>
+      </table>
+    </div>
+    <p id="gr-note"></p>
+  </details>
+
+  <div class="warn" id="warn" role="alert" hidden></div>
+  <div class="intro">
+    <p><span class="lvl safe">Безопасно</span> пересоздаётся само при следующей сборке или запуске; цена — немного времени и трафика.</p>
+    <p><span class="lvl caution">Осторожно</span> есть последствия: перезапуск приложения или безвозвратное удаление старой истории. Автоочистка такие пункты не трогает.</p>
+  </div>
+  <div id="list"><div class="empty">Сканирование…</div></div>
+
+  <details class="ov" id="ov" hidden>
+    <summary>Все контейнеры</summary>
+    <div class="ov-wrap">
+      <table>
+        <thead><tr><th>Контейнер</th><th>Образ</th><th>/data</th><th>Слой записи</th></tr></thead>
+        <tbody id="ov-body"></tbody>
+      </table>
+    </div>
+    <p>Только для информации, отсюда ничего не удаляется. Образ — сама программа, он исчезает при удалении приложения. /data — рабочие данные приложения: модели, базы, настройки; вручную их не чистите. Слой записи — временные файлы, он сбрасывается перезапуском (пункт выше).</p>
+  </details>
+</main>
+
+<div class="actions">
+  <div class="actions-in">
+    <div class="status" id="status"></div>
+    <button id="scan">Пересканировать</button>
+    <button id="clean" class="primary" disabled>Удалить выбранное</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = b => {
+  const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return b.toFixed(i >= 3 ? 2 : i ? 1 : 0).replace('.', ',') + ' ' + u[i];
+};
+const ago = t => t ? new Date(t * 1000).toLocaleString('ru-RU') : '—';
+
+let data = null;
+let selected = new Set();
+let busy = false;
+
+function setStatus(text, err = false) {
+  $('status').textContent = text;
+  $('status').classList.toggle('err', err);
+}
+
+function selectedSize() {
+  return data ? data.items.filter(i => selected.has(i.id) && i.exact).reduce((a, i) => a + i.size, 0) : 0;
+}
+
+function delta(v) {
+  if (v === null || v === undefined) return '<span class="flat">—</span>';
+  const big = Math.abs(v) >= 100 * 1048576;
+  if (Math.abs(v) < 1048576) return '<span class="flat">0</span>';
+  return v > 0
+    ? `<span class="${big ? 'up' : 'flat'}">+${fmt(v)}</span>`
+    : `<span class="down">−${fmt(-v)}</span>`;
+}
+
+function renderGrowth() {
+  const g = data.growth;
+  $('gr').hidden = !g || !g.rows.length;
+  if (!g || !g.rows.length) return;
+  const day = new Date((g.week_ref || 0) * 1000);
+  $('gr-week').textContent = g.week_ref && (Date.now() / 1000 - g.week_ref) < 6.5 * 86400
+    ? `С ${day.toLocaleDateString('ru-RU')}` : 'За неделю';
+  const body = $('gr-body');
+  body.innerHTML = '';
+  for (const r of g.rows) {
+    const tr = document.createElement('tr');
+    if (r.key === 'disk:used') tr.className = 'total';
+    tr.innerHTML = `<td></td><td>${fmt(r.now)}</td><td>${delta(r.day)}</td><td>${delta(r.week)}</td>`;
+    tr.firstChild.textContent = r.label;
+    body.appendChild(tr);
+  }
+  $('gr-note').textContent = !g.day_ref
+    ? `История ведётся с ${ago(g.first)}. Снимок делается раз в 6 часов, сравнение за сутки появится через день.`
+    : 'Снимок размеров делается раз в 6 часов. Оранжевым отмечен рост больше 100 МБ. Очистка уменьшает только кэши, поэтому стабильный рост в других строках — повод разобраться.';
+}
+
+function renderOverview() {
+  const ov = data.overview || [];
+  $('ov').hidden = !ov.length;
+  const body = $('ov-body');
+  body.innerHTML = '';
+  for (const o of ov) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><span class="nm"></span></td>' + [o.image, o.data, o.rw].map(v => `<td>${v ? fmt(v) : '—'}</td>`).join('');
+    tr.querySelector('.nm').textContent = o.name;
+    if (o.level === 'keep') {
+      const b = document.createElement('span');
+      b.className = 'lvl keep'; b.textContent = 'Не удалять';
+      tr.firstChild.appendChild(b);
+    }
+    if (o.desc) {
+      const d = document.createElement('span');
+      d.className = 'd'; d.textContent = o.desc;
+      tr.firstChild.appendChild(d);
+    }
+    body.appendChild(tr);
+  }
+}
+
+function renderDisk() {
+  const d = data.disk, sel = Math.min(selectedSize(), d.used);
+  $('free').innerHTML = `${fmt(d.free)} <small>свободно</small>`;
+  $('total').textContent = `${fmt(d.used)} из ${fmt(d.total)}`;
+  $('bar-u').style.width = ((d.used - sel) / d.total * 100) + '%';
+  $('bar-s').style.width = (sel / d.total * 100) + '%';
+  $('bar-wrap').setAttribute('aria-label', `Занято ${fmt(d.used)} из ${fmt(d.total)}`);
+}
+
+function renderButtons() {
+  const n = selected.size;
+  $('clean').disabled = busy || n === 0;
+  $('scan').disabled = busy;
+  $('clean').textContent = n ? `Удалить выбранное (${fmt(selectedSize())})` : 'Удалить выбранное';
+}
+
+function render() {
+  renderDisk();
+  $('warn').hidden = !data.warning;
+  $('warn').textContent = data.warning || '';
+  const groups = {};
+  data.items.forEach(i => (groups[i.group] ||= []).push(i));
+  const list = $('list');
+  list.innerHTML = '';
+  if (!data.items.length) {
+    list.innerHTML = '<div class="empty">Удалять нечего: кэши и временные файлы уже чистые.</div>';
+  }
+  for (const [name, items] of Object.entries(groups)) {
+    const g = document.createElement('section');
+    g.className = 'group';
+    const total = items.filter(i => i.exact).reduce((a, i) => a + i.size, 0);
+    const all = items.every(i => selected.has(i.id));
+    g.innerHTML = `<label class="group-head"><input type="checkbox" ${all ? 'checked' : ''}><span></span><span class="sz">${total ? fmt(total) : ''}</span></label>`;
+    g.querySelector('span').textContent = name;
+    g.querySelector('input').addEventListener('change', e => {
+      items.forEach(i => e.target.checked ? selected.add(i.id) : selected.delete(i.id));
+      render();
+    });
+    for (const it of items) {
+      const r = document.createElement('label');
+      r.className = 'row';
+      r.innerHTML = `<input type="checkbox" ${selected.has(it.id) ? 'checked' : ''}><span class="t"><span class="ti"></span><span class="lvl"></span><span class="d"></span><span class="w"></span><span class="n"></span></span><span class="sz ${it.exact ? '' : 'approx'}">${it.exact ? '' : 'из '}${fmt(it.size)}</span>`;
+      r.querySelector('.ti').textContent = it.title;
+      const lvl = r.querySelector('.lvl');
+      lvl.classList.add(it.level);
+      lvl.textContent = it.level === 'caution' ? 'Осторожно' : 'Безопасно';
+      r.querySelector('.d').textContent = it.desc || '';
+      if (!it.desc) r.querySelector('.d').remove();
+      r.querySelector('.n').textContent = it.note;
+      r.querySelector('.w').textContent = it.warn || '';
+      if (!it.warn) r.querySelector('.w').remove();
+      r.querySelector('input').addEventListener('change', e => {
+        e.target.checked ? selected.add(it.id) : selected.delete(it.id);
+        render();
+      });
+      g.appendChild(r);
+    }
+    list.appendChild(g);
+  }
+  renderOverview();
+  renderGrowth();
+  $('sub').textContent = data.auto
+    ? `Автоочистка каждые ${data.interval} ч. Последнее сканирование: ${ago(data.last_scan)}.`
+    : `Последнее сканирование: ${ago(data.last_scan)}.`;
+  if (data.mqtt) $('sub').textContent += ' Сущности в HA: подключены через MQTT.';
+  renderButtons();
+}
+
+async function call(path, body) {
+  busy = true; renderButtons();
+  try {
+    const r = await fetch(path, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await r.text() || r.status);
+    data = await r.json();
+    const ids = new Set(data.items.map(i => i.id));
+    selected = new Set([...selected].filter(id => ids.has(id)));
+    return data;
+  } finally {
+    busy = false;
+    if (data) render(); else renderButtons();
+  }
+}
+
+async function scan() {
+  setStatus('Сканирую…');
+  try { await call('api/scan', {}); setStatus(''); }
+  catch (e) { setStatus('Сканирование не удалось: ' + e.message, true); }
+}
+
+$('scan').addEventListener('click', scan);
+$('clean').addEventListener('click', async () => {
+  const size = fmt(selectedSize());
+  const warns = data.items.filter(i => selected.has(i.id) && i.warn).map(i => `• ${i.title}: ${i.warn}`);
+  const msg = `Удалить ${selected.size} элемент(ов), около ${size}?\nНе запускайте во время компиляции прошивок.` +
+    (warns.length ? '\n\n' + warns.join('\n') : '');
+  if (!confirm(msg)) return;
+  setStatus('Удаляю…');
+  try {
+    const res = await call('api/clean', { ids: [...selected] });
+    selected.clear(); render();
+    res.errors && res.errors.length
+      ? setStatus(`Освобождено ${fmt(res.freed)}, ошибок: ${res.errors.length}. ${res.errors[0]}`, true)
+      : setStatus(`Освобождено ${fmt(res.freed)}.`);
+  } catch (e) { setStatus('Удаление не удалось: ' + e.message, true); }
+});
+
+(async () => {
+  try {
+    await call('api/state');
+    while (!data.last_scan) {
+      if (!data.busy) { await scan(); break; }
+      setStatus('Сканирую…');
+      await new Promise(r => setTimeout(r, 2000));
+      await call('api/state');
+    }
+    if (data.last_scan) setStatus('');
+  } catch (e) { setStatus('Нет связи с дополнением: ' + e.message, true); }
+})();
+</script>
+</body>
+</html>

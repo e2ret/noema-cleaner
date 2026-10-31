@@ -1,0 +1,18 @@
+configuration:
+  auto_clean:
+    name: Автоочистка
+    description: Периодически удалять всё найденное без подтверждения
+  interval_hours:
+    name: Интервал автоочистки, часов
+  log_max_age_days:
+    name: Хранить логи, дней
+    description: Логи Zigbee2MQTT старше этого срока считаются мусором
+  keep_esphome_versions:
+    name: Версий ESPHome в dist server
+    description: Сколько последних версий оставлять
+  mqtt:
+    name: Сущности в HA через MQTT
+    description: Датчики «Можно освободить», «Свободно на диске» и кнопка очистки
+  scan_interval_minutes:
+    name: Интервал сканирования, минут
+    description: Как часто обновлять датчик «Можно освободить»
