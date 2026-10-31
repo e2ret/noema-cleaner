@@ -25,7 +25,6 @@ log = logging.getLogger("cleaner")
 CONFIG = "/config"
 MIN_SIZE = 1024 * 1024  # мельче 1 МБ не показываем
 INGRESS_IPS = {"172.30.32.2", "127.0.0.1"}
-RW_MIN = 50 * 1024 * 1024  # слой записи контейнера меньше 50 МБ не предлагаем
 
 
 def load_options():
@@ -43,7 +42,7 @@ LOG_DAYS = int(OPTS.get("log_max_age_days", 7))
 KEEP_VERSIONS = max(1, int(OPTS.get("keep_esphome_versions", 1)))
 MQTT_ENABLED = bool(OPTS.get("mqtt", True))
 SCAN_MIN = max(5, int(OPTS.get("scan_interval_minutes", 60)))
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 DOCKER_SOCKETS = ["/run/docker.sock", "/var/run/docker.sock"]
 NO_DOCKER_MSG = ("Нет доступа к Docker. Отключите Protection mode на странице дополнения "
@@ -239,13 +238,6 @@ def describe(name):
     return "", ""
 
 
-def app_slug(name):
-    for prefix in ("app_", "addon_"):
-        if name.startswith(prefix):
-            return name[len(prefix):]
-    return None
-
-
 # ---------- scanners ----------
 
 def scan_containers(items):
@@ -277,18 +269,6 @@ def scan_containers(items):
             "desc": describe(c.name)[0],
             "level": describe(c.name)[1],
         })
-        slug = app_slug(c.name)
-        if slug and rw >= RW_MIN and "noema_cleaner" not in c.name:
-            add(
-                items, f"rw:{c.name}", "Слой записи контейнеров", c.name, rw,
-                lambda slug=slug: supervisor("POST", f"/addons/{slug}/restart"),
-                "Сбрасывается перезапуском приложения",
-                auto=False, warn="Приложение перезапустится", level="caution",
-                desc=("Файлы, которые приложение записало внутри контейнера после запуска: временные файлы, "
-                      "кэши, логи. Данные в /data и настройки сохраняются. На время перезапуска приложение "
-                      "недоступно; для MariaDB, Zigbee2MQTT или Mosquitto это короткий перерыв в работе "
-                      "связанных интеграций."),
-            )
     overview.sort(key=lambda o: -(o["image"] + o["data"] + o["rw"]))
     STATE["overview"] = overview
 

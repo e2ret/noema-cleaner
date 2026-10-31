@@ -1,5 +1,5 @@
 name: NOEMA Cleaner
-version: "0.4.0"
+version: "0.4.1"
 slug: noema_cleaner
 description: Находит и удаляет кэши сборок, старые версии и временные файлы
 arch:
