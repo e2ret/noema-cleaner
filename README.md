@@ -29,11 +29,15 @@
 
 ## Установка
 
-1. Скопируйте папку целиком в `/addons/noema_cleaner/` (Samba-шара `addons`).
-2. Магазин приложений → ⋮ → «Проверить обновления» → установить или «Обновить».
+[![Добавить репозиторий в Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fe2ret%2Fnoema-cleaner)
+
+1. Магазин приложений → ⋮ → «Репозитории» → добавьте `https://github.com/e2ret/noema-cleaner` (или нажмите кнопку выше).
+2. Найдите в магазине «NOEMA Cleaner» и установите.
 3. Отключите Protection mode на странице приложения: без него `docker_api` недоступен, и работает только очистка `/config`.
 
-Обновлять нужно кнопкой «Обновить», а не «Пересобрать», и каждое изменение выпускать с новой версией в `config.yaml`.
+Обновления приходят через магазин: ⋮ → «Проверить обновления» → «Обновить». Нажимайте «Обновить», а не «Пересобрать», и каждое изменение выпускайте с новой версией в `noema_cleaner/config.yaml`.
+
+HACS приложения (add-ons) не поддерживает, он работает только с интеграциями, картами и темами. Для приложений используется репозиторий магазина Supervisor, как описано выше.
 
 ## Разработка
 
@@ -45,4 +49,4 @@ sh dev/run.sh    # http://localhost:8099
 ```
 
 Для проверки MQTT запустите mosquitto на 1883 и выполните `MQTT_HOST=localhost sh dev/run.sh`.
-Перед выпуском версии: `python3 -m py_compile app/main.py`. Версия задаётся в `config.yaml` и в `VERSION` в `app/main.py`.
+Перед выпуском версии: `python3 -m py_compile noema_cleaner/app/main.py`. Версия задаётся в `noema_cleaner/config.yaml` и в `VERSION` в `noema_cleaner/app/main.py`.

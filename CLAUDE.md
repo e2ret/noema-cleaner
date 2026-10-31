@@ -4,11 +4,11 @@
 
 ## Структура
 
-- `config.yaml` — манифест приложения. `version` здесь и `VERSION` в `app/main.py` меняются вместе.
-- `build.yaml`, `Dockerfile` — образ на `ghcr.io/home-assistant/{arch}-base:3.20`, пакеты из apk: `python3 py3-aiohttp py3-docker-py py3-paho-mqtt` (без pip).
-- `translations/en.yaml` — подписи настроек (на русском, файл en — потому что HA ищет его по умолчанию).
-- `app/main.py` — весь бэкенд (aiohttp + docker SDK + paho-mqtt), разделы: helpers → scanners → history → orchestration → MQTT → web.
-- `app/index.html` — ingress-панель, чистый HTML/CSS/JS без сборки.
+- `noema_cleaner/config.yaml` — манифест приложения. `version` здесь и `VERSION` в `noema_cleaner/app/main.py` меняются вместе.
+- `noema_cleaner/build.yaml`, `noema_cleaner/Dockerfile` — образ на `ghcr.io/home-assistant/{arch}-base:3.20`, пакеты из apk: `python3 py3-aiohttp py3-docker-py py3-paho-mqtt` (без pip).
+- `noema_cleaner/translations/en.yaml` — подписи настроек (на русском, файл en — потому что HA ищет его по умолчанию).
+- `noema_cleaner/app/main.py` — весь бэкенд (aiohttp + docker SDK + paho-mqtt), разделы: helpers → scanners → history → orchestration → MQTT → web.
+- `noema_cleaner/app/index.html` — ingress-панель, чистый HTML/CSS/JS без сборки.
 - `dev/` — заглушка Docker и запуск для локальной проверки (в образ не попадает).
 
 ## Как устроено
@@ -26,9 +26,9 @@
 
 ## Грабли, на которые уже наступили
 
-- Protection mode должен быть выключен, иначе `docker_api: true` игнорируется и сокета нет. После смены прав в `config.yaml` HA может снова его включить.
+- Protection mode должен быть выключен, иначе `docker_api: true` игнорируется и сокета нет. После смены прав в `noema_cleaner/config.yaml` HA может снова его включить.
 - s6-overlay очищает окружение: `SUPERVISOR_TOKEN` читать из env или `/run/s6/container_environment/` (см. `supervisor_token()`).
-- Обновлять через «Обновить», не «Пересобрать»: пересборка не применяет изменения `config.yaml`. Поэтому любое изменение — с повышением версии.
+- Обновлять через «Обновить», не «Пересобрать»: пересборка не применяет изменения `noema_cleaner/config.yaml`. Поэтому любое изменение — с повышением версии.
 - Ingress: страница отдаётся с `<base href>` из заголовка `X-Ingress-Path`, все запросы относительные (`api/scan`). Иначе запросы уходят в API ядра HA → 401.
 - Контейнеры приложений называются `app_<slug>` (раньше `addon_`), slug для API = имя без префикса.
 - `du` только с `-x`: у `hassio_supervisor` в `/data` смонтированы сетевые хранилища (показывал 114 ГБ).
@@ -43,7 +43,7 @@ pip install aiohttp docker paho-mqtt
 sh dev/run.sh         # поднимает приложение на http://localhost:8099 с заглушкой Docker
 ```
 
-Для проверки MQTT: запустить mosquitto на 1883, `sh dev/run.sh` подставит его как брокер. Перед выдачей версии: `python3 -m py_compile app/main.py` и прогон через `sh dev/run.sh`.
+Для проверки MQTT: запустить mosquitto на 1883, `sh dev/run.sh` подставит его как брокер. Перед выдачей версии: `python3 -m py_compile noema_cleaner/app/main.py` и прогон через `sh dev/run.sh`.
 
 ## Установка на HA
 

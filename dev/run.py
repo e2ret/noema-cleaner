@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "app"))
+sys.path.insert(0, os.path.join(HERE, "..", "noema_cleaner", "app"))
 sys.path.insert(0, HERE)
 
 import main  # noqa: E402
